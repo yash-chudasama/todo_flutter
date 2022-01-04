@@ -26,23 +26,28 @@ class Todo {
     this.title = "",
     this.description = "",
     this.hasDone = false,
+    this.dueDate,
   });
 
   String id;
   String title;
   String description;
   bool hasDone;
+  DateTime? dueDate;
 
   factory Todo.fromJson(Map<String, dynamic> json) => Todo(
         id: json["_id"],
         title: json["title"],
         description: json["description"],
         hasDone: json["hasDone"],
+        dueDate:
+            json["dueDate"] == null ? null : DateTime.parse(json["dueDate"]),
       );
 
   Map<String, dynamic> toJson() => {
         "title": title,
         "description": description,
         "hasDone": hasDone,
+        "dueDate": dueDate?.toIso8601String(),
       };
 }

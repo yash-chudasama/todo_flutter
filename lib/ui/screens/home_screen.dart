@@ -1,7 +1,10 @@
+// ignore_for_file: avoid_print
+
 import 'package:flutter/material.dart';
-import 'package:todo_app/models/todo.dart';
-import 'package:todo_app/services/network_service.dart';
-import 'package:todo_app/ui/widgets/todo_tile.dart';
+import '../../models/todo.dart';
+import '../../services/network_service.dart';
+import '../widgets/todo_tile.dart';
+import 'package:flutter_datetime_picker/flutter_datetime_picker.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -16,39 +19,50 @@ class _HomeScreenState extends State<HomeScreen> {
   Key key = UniqueKey();
   String title = "";
   String description = "";
+  DateTime dateTime = DateTime.now();
+  List<Todo> dataList = [];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Todo App"),
+        actions: [
+          IconButton(
+              onPressed: () {
+                updateScreen();
+              },
+              icon: const Icon(Icons.refresh))
+        ],
       ),
       body: FutureBuilder<Todos>(
         future: _networkService.getTodos(),
         builder: (context, snapshot) {
-          print(snapshot.connectionState.toString());
+          dataList = snapshot.data?.list ?? [];
           return snapshot.connectionState != ConnectionState.done
               ? const Center(child: CircularProgressIndicator())
               : Container(
                   margin: const EdgeInsets.all(8.0),
                   child: ListView(
                     shrinkWrap: true,
-                    children: (snapshot.data?.list ?? [])
+                    children: dataList
                         .map<ToDoTile>(
                           (e) => ToDoTile(
                             title: e.title,
                             description: e.description,
                             hasDone: e.hasDone,
+                            date: e.dueDate,
                             onClick: () async {
                               if (await _networkService.updateTodo(
-                                  e.id, !e.hasDone))
-                                setState(() => {e.hasDone = !e.hasDone});
+                                  e.id, !e.hasDone)) {
+                                setState(() {
+                                  e.hasDone = !e.hasDone;
+                                });
+                              }
                             },
                             onDelete: () async {
                               await _networkService.deleteTodo(e.id);
-                              setState(() {
-                                key = UniqueKey();
-                              });
+                              updateScreen();
                             },
                           ),
                         )
@@ -73,26 +87,43 @@ class _HomeScreenState extends State<HomeScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
-                onChanged: (value) => title = value,
-                decoration: InputDecoration(labelText: "Title")),
+              onChanged: (value) => title = value,
+              decoration: const InputDecoration(
+                labelText: "Title",
+              ),
+            ),
             TextField(
-                onChanged: (value) => description = value,
-                decoration: InputDecoration(labelText: "Description")),
+              onChanged: (value) => description = value,
+              decoration: const InputDecoration(
+                labelText: "Description",
+              ),
+            ),
+            TextButton(
+              onPressed: () async {
+                dateTime = await DatePicker.showDatePicker(context,
+                        minTime: DateTime.now(),
+                        currentTime: DateTime.now(),
+                        locale: LocaleType.en) ??
+                    DateTime.now();
+              },
+              child: const Text("Due Date"),
+            ),
           ],
         ),
         actions: [
           TextButton(
             child: const Text("Add"),
             onPressed: () async {
-              bool done = await _networkService
-                  .addTodo(Todo(title: title, description: description));
-              key = UniqueKey();
+              bool done = await _networkService.addTodo(Todo(
+                  title: title, description: description, dueDate: dateTime));
+              print("Done: $done");
               if (done) {
                 Navigator.of(context).pop();
               } else {
-                Scaffold.of(context).showSnackBar(
+                ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text("Failed to add todo")));
               }
+              updateScreen();
             },
           ),
           TextButton(
@@ -104,5 +135,14 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> updateScreen() async {
+    List<Todo> list = (await _networkService.getTodos()).list;
+    print("UpdateScreen()");
+    setState(() {
+      dataList = list;
+      key = UniqueKey();
+    });
   }
 }
