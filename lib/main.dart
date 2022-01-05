@@ -5,8 +5,15 @@ void main() {
   runApp(const TodoApp());
 }
 
-class TodoApp extends StatelessWidget {
+class TodoApp extends StatefulWidget {
   const TodoApp({Key? key}) : super(key: key);
+
+  @override
+  State<TodoApp> createState() => _TodoAppState();
+}
+
+class _TodoAppState extends State<TodoApp> {
+  ThemeMode themeMode = ThemeMode.light;
 
   @override
   Widget build(BuildContext context) {
@@ -14,8 +21,19 @@ class TodoApp extends StatelessWidget {
         title: 'ToDo App',
         theme: ThemeData(
           primarySwatch: Colors.blue,
+          brightness: Brightness.light,
         ),
+        darkTheme: ThemeData(
+          brightness: Brightness.dark,
+        ),
+        themeMode: themeMode,
         color: Colors.white,
-        home: const HomeScreen());
+        home: HomeScreen(onThemeChanged: onThemeChanged));
+  }
+
+  void onThemeChanged(ThemeMode themeMode) {
+    setState(() {
+      this.themeMode = themeMode;
+    });
   }
 }

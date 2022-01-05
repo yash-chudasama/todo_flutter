@@ -7,7 +7,9 @@ import '../widgets/todo_tile.dart';
 import 'package:flutter_datetime_picker/flutter_datetime_picker.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({Key? key}) : super(key: key);
+  final Function(ThemeMode)? onThemeChanged;
+
+  const HomeScreen({Key? key, @required this.onThemeChanged}) : super(key: key);
 
   @override
   _HomeScreenState createState() => _HomeScreenState();
@@ -21,6 +23,7 @@ class _HomeScreenState extends State<HomeScreen> {
   String description = "";
   DateTime dateTime = DateTime.now();
   List<Todo> dataList = [];
+  bool isDarkMode = false;
 
   @override
   Widget build(BuildContext context) {
@@ -29,10 +32,26 @@ class _HomeScreenState extends State<HomeScreen> {
         title: const Text("Todo App"),
         actions: [
           IconButton(
-              onPressed: () {
-                updateScreen();
-              },
-              icon: const Icon(Icons.refresh))
+            onPressed: () {
+              updateScreen();
+            },
+            icon: const Icon(
+              Icons.refresh,
+            ),
+          ),
+          IconButton(
+            onPressed: () {
+              widget.onThemeChanged?.call(
+                isDarkMode ? ThemeMode.light : ThemeMode.dark,
+              );
+              setState(() {
+                isDarkMode = !isDarkMode;
+              });
+            },
+            icon: Icon(
+              isDarkMode ? Icons.dark_mode : Icons.light_mode,
+            ),
+          ),
         ],
       ),
       body: FutureBuilder<Todos>(
@@ -114,16 +133,23 @@ class _HomeScreenState extends State<HomeScreen> {
           TextButton(
             child: const Text("Add"),
             onPressed: () async {
-              bool done = await _networkService.addTodo(Todo(
-                  title: title, description: description, dueDate: dateTime));
-              print("Done: $done");
-              if (done) {
-                Navigator.of(context).pop();
+              if (title.isNotEmpty &&
+                  description.isNotEmpty &&
+                  dateTime != null) {
+                bool done = await _networkService.addTodo(Todo(
+                    title: title, description: description, dueDate: dateTime));
+                print("Done: $done");
+                if (done) {
+                  Navigator.of(context).pop();
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Failed to add todo")));
+                }
+                updateScreen();
               } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Failed to add todo")));
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                    content: Text("Please fill all the fields")));
               }
-              updateScreen();
             },
           ),
           TextButton(
